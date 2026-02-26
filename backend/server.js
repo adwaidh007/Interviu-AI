@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const connectDB = require("./config/db");
 
 const authRoutes = require('./routes/authRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
@@ -14,21 +13,22 @@ const app = express();
 
 //Middleware to handle CORS
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "https://interviu-ai-zeta.vercel.app"
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+  origin: [
+    "http://localhost:5173",
+    "https://interviu-ai-zeta.vercel.app"
+  ],
+  credentials: true
 }));
 
-app.options("*", cors());
-
-connectDB();
+// app.options("*", cors());
 
 //Middleware 
 app.use(express.json());
+
+const connectDB = require("./config/db");
+connectDB();
+
+
 
 //Routes
 app.use("/api/auth", authRoutes);
