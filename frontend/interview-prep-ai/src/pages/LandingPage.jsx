@@ -36,7 +36,7 @@ const LandingPage = () => {
           {/* Header */}
           <header className="flex justify-between items-center mb-16">
             <div className="text-xl text-black font-bold">
-              Interview Prep AI
+              Interviu AI
             </div>
                { user ? (
                 <ProfileInfoCard/>
@@ -141,7 +141,7 @@ const LandingPage = () => {
     </div>
 
     <div className="text-sm bg-gray-50 text-secondary text-center p-5 mt-5">
-      Made with ❤️ by Interview Prep AI Team
+      Made with ❤️ by Interviu Team
     </div>
      </div>
 

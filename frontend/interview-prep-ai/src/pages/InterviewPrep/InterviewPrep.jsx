@@ -10,6 +10,9 @@ import RoleInfoHeader from './components/RoleInfoHeader';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPaths';
 import QuestionCard from '../../components/Cards/QuestionCard';
+import Drawer from '../../components/Drawer';
+import SkeletonLoader from '../../components/Loader/SkeletonLoader';
+import AIResponsePreview from './components/AIResponsePreview';
 
 const InterviewPrep = () => {
   const { sessionId } = useParams();
@@ -20,7 +23,7 @@ const InterviewPrep = () => {
   const [openLeanMoreDrawer, setOpenLeanMoreDrawer] = useState(false);
   const [explanation, setExplanation] = useState("");
 
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isUpdateLoader, setIsUpdateLoader] = useState(false);
 
   // Fetch session data by session id
@@ -39,13 +42,92 @@ const InterviewPrep = () => {
   };
 
   //Generate Concept Explanation
-  const generateConceptExplanation = async (question) => {};
+  const generateConceptExplanation = async (question) => {
+    try {
+      setErrorMsg("");
+      setExplanation(null)
+
+      setIsLoading(true);
+      setOpenLeanMoreDrawer(true);
+
+      const response = await axiosInstance.post(
+        API_PATHS.AI.GENERATE_EXPLANATION,
+        {
+          question,
+        }
+      );
+
+      if (response.data) {
+        setExplanation(response.data);
+      }
+    } catch (error) {
+      setExplanation(null)
+      setErrorMsg("Failed to generate explanation, Try again later");
+      console.error("Error:",error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 // Pin Question
-const toggleQuestionPinStatus = async (questionId) => {};
+const toggleQuestionPinStatus = async (questionId) => {
+  try {
+    const response = await axiosInstance.post(
+      API_PATHS.QUESTION.PIN(questionId)
+    );
+
+    console.log(response);
+
+    if(response.data && response.data.question) {
+      //toast.success('Question Pinned Successfully')
+      fetchSessionDetailsById();
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
 
 // Add more questions to a session
-const uploadMoreQuestions = async () => {};
+const uploadMoreQuestions = async () => {
+  try {
+    setIsUpdateLoader(true);
+
+    //Call AI API to generate questions
+    const aiResponse = await axiosInstance.post(
+      API_PATHS.AI.GENERATE_QUESTIONS,
+      {
+        role: sessionData?.role,
+        experience: sessionData?.experience,
+        topicsToFocus: sessionData?.topicsToFocus,
+        numberOfQuestions: 10,
+      }
+    );
+
+    //Should be array like [{question, answer}, ...]
+    const generatedQuestions = aiResponse.data;
+
+    const response = await axiosInstance.post(
+      API_PATHS.QUESTION.ADD_TO_SESSION,
+      {
+        sessionId,
+        questions: generatedQuestions,
+      }
+    );
+
+    if(response.data) {
+      toast.success("Added More Q&A!!");
+      fetchSessionDetailsById();
+    }
+  } catch (error) {
+    if(error.response && error.response.data.message) {
+      setErrorMsg(error.response.data.message);
+    } else {
+      setErrorMsg("Something went wrong. Please try again.");
+    }
+  } finally {
+    setIsUpdateLoader(false);
+  }
+};
 
 useEffect(() => {
   if (sessionId) {
@@ -105,16 +187,53 @@ useEffect(() => {
                             generateConceptExplanation(data?.question)
                           }
                           isPinned={data?.isPinned}
-                          onTogglePin={() => toggleQuestionPinStatus(data.id)}
+                          onTogglePin={() => toggleQuestionPinStatus(data._id)}
                           />
+                      
+
+                      {!isLoading && 
+                      sessionData?.questions?.length == index + 1 && (
+                        <div className="flex items-center justify-center mt-5">
+                          <button
+                          className="flex items-center gap-3 text-sm text-white font-medium bg-black px-5 py-2 mr-2 rounded text-nowrap cursor-pointer"
+                          disabled={isLoading || isUpdateLoader}
+                          onClick={uploadMoreQuestions}
+                        >
+                          {isUpdateLoader ? (
+                            <SpinnerLoader />
+                          ) : (
+                            <LuListCollapse className="text-lg" />
+                          )}{""}
+                          Load More
+                        </button>
+                        </div>
+                      )}
                       </>
                   </motion.div>
                 );  
               })}
             </AnimatePresence>
           </div>
-          </div>
-          </div>
+         </div>
+
+         <div>
+          <Drawer
+            isOpen={openLeanMoreDrawer}
+            onClose={() => setOpenLeanMoreDrawer(false)}
+            title={!isLoading && explanation?.title}
+          >
+            {errorMsg && (
+              <p className="flex gap-2 text-sm text-amber-600 font-medium">
+                <LuCircleAlert className="mt-1" /> {errorMsg}
+              </p>
+            )}
+            {isLoading && <SkeletonLoader />}
+            {!isLoading && explanation && (
+              <AIResponsePreview content={explanation?.explanation} />
+            )}
+          </Drawer>
+         </div>
+        </div>
     </DashboardLayout>
   )
 }
