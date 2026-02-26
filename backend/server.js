@@ -13,16 +13,17 @@ const { generateInterviewQuestions, generateConceptExplanation } = require("./co
 const app = express();
 
 //Middleware to handle CORS
-app.use(
-    cors({
-        origin:[
-    "http://localhost:5173",
-    "https://interviu-ai-zeta.vercel.app/"
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://interviu-ai-zeta.vercel.app"
     ],
-        methods:["GET","POST","PUT","DELETE"],
-        allowedHeaders:["Content-Type","Authorization"],
-    })
-);
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+app.options("*", cors());
 
 connectDB();
 
